@@ -15,19 +15,19 @@ pub struct Config {
 impl Config {
     // Returns a result with a Config instance if success, and a &'static str in the error case
     // NOTE: Our error values will always be string literals that have the 'static lifetime
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("not enough arguments");
-        }
-        // Save the two needed arguments in variables so we can use them throughout the program
-        // NOTE: The program's name takes up the first value in the vector, so we're starting at index 1
-        // NOTE: The args variable in main is the owner of the argument values,
-        // so we call the clone method on the values which makes a full copy of the data
-        // for the Config instance to own. This does take more time and memory than storing
-        // a reference to the string data, but makes the code very straightforward because we
-        // don't have to manage the lifetimes of the references.
-        let query = args[1].clone();
-        let filename = args[2].clone();
+    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+        // The first value in the return value of env::args is the name of the program which we want to ignore
+        args.next();
+        // Call next to get the value we want to put in the query field and use match to extract the value
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a query string"),
+        };
+        // Call next to get the value we want to put in the filename field and use match to extract the value
+        let filename = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Didn't get a file name"),
+        };
         //using the is_err method on the Result to check whether it's an error and therefore unset
         // which means it should do a case-sensitive search, if the CASE_INSENSITIVE env variable is set to anything
         // is_err will return false and the program will perform a case-insensitive search
@@ -66,27 +66,19 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 // live as long as the data passed in the search function in the contents argument. The data referenced
 // by a slice needs to be valid for the reference to ve valid
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut results = Vec::new();
-    for line in contents.lines() {
-        if line.contains(query) {
-            results.push(line);
-        }
-    }
-
-    results
+    // Get the lines of the contents, and use the filter adaptor to keep only the lines where line.contains(query) returns true
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase();
-    let mut results = Vec::new();
-
-    for line in contents.lines() {
-        if line.to_lowercase().contains(&query) {
-            results.push(line);
-        }
-    }
-
-    results
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }
 
 #[cfg(test)]

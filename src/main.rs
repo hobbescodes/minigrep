@@ -15,13 +15,9 @@ mod lib;
 use lib::Config;
 
 fn main() {
-    // collect turns the iterator into a vector containing all the values produced by the iterator.
-    // we can use the collect function to create many kinds of collections, so we explicitly annotate the type of args
-    let args: Vec<String> = env::args().collect();
-    // We pass the whole vector to a new function associated with Config function to create an instance of Config
-    // NOTE: unwrap_or_else is defined on Result<T, E> by the std library. It allows us to define some custom,
-    // non-panic! error handling
-    let config = Config::new(&args).unwrap_or_else(|err| {
+    // env::args function returns an iterator, we are passing ownership of the iterator from
+    // env::args to Config::new directly
+    let config = Config::new(env::args()).unwrap_or_else(|err| {
         // NOTE: eprintln writes out to standard error for error messages
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1);
